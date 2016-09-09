@@ -24,6 +24,11 @@
 
 @property (nonatomic,strong) NSMutableArray *arrays;
 
+/*搜索数组*/
+@property (nonatomic,strong) NSMutableArray *arrs;
+
+@property (nonatomic,weak) MBSearchBar *searchBar;
+
 @end
 
 @implementation TFMytableViewVC
@@ -35,6 +40,14 @@
     }
     return _arrays;
 }
+
+//- (NSMutableArray *)arrs
+//{
+//    if (!_arrs) {
+//        _arrs = [NSMutableArray array];
+//    }
+//    return _arrs;
+//}
 
 - (void)viewDidLoad {
     [super viewDidLoad];
@@ -48,10 +61,13 @@
     [self addBtn];
     
     //刷新
-    [self.tableView addHeaderWithTarget:self action:@selector(refresh)];
+    [self.tableView addHeaderWithTarget:self action:@selector(refreshh)];
     
     //自动刷新
     [self.tableView headerBeginRefreshing];
+    
+    //注册一个通知
+    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(textfieldChange:) name:UITextFieldTextDidChangeNotification object:nil];
 }
 
 - (void) viewWillAppear:(BOOL)animated
@@ -70,7 +86,7 @@
     
     search.layer.cornerRadius = 5;
     search.layer.masksToBounds = YES;
-    
+    _searchBar = search;
     self.navigationItem.titleView = search;
 }
 
@@ -94,7 +110,7 @@
     _btn = btn;
 }
 
-- (void)refresh
+- (void)refreshh
 {
     NSMutableArray *newItems = (NSMutableArray *)[[TFDataTool sharedTFDataTool] getData];
     
@@ -105,6 +121,7 @@
 #warning 在表格中，为了保证新插入的数据显示在第一行，必须得用insertObject:newItems[i] atIndex:0方法，不断的累加在第一行插入，这样顺序才不会错
             [self.arrays insertObject:newItems[i] atIndex:0];
         }
+        
         [self.tableView reloadData];
     }
 
@@ -121,15 +138,31 @@
 
 - (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section {
     NSLog(@"%ld",self.arrays.count);
-    return self.arrays.count;
+    NSLog(@"self1%@",self.arrays);
+    
+    if (self.searchBar.isEditing == YES) {
+        return self.arrs.count;
+    }else{
+        return self.arrays.count;
+    }
 }
 
 
 - (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath {
+    
+    NSLog(@"self%@",self.arrays);
     UITableViewCell *cell = [tableView dequeueReusableCellWithIdentifier:@"cell"];
+    
+    
     
     TFContact *contact = self.arrays[indexPath.row];
     
+    if (self.searchBar.isEditing == YES) {
+        contact = self.arrs[indexPath.row];
+    }
+    
+    NSLog(@"%@",contact);
+    NSLog(@"%@",contact.name);
     
     cell.textLabel.text = contact.name;
     cell.detailTextLabel.text = contact.tel;
@@ -138,22 +171,79 @@
     return cell;
 }
 
+/*这个方法监听值的变化的时候有弊端，每次只能获取到一个字符，而且textField.text还获取不到，改用通知的方法*/
+/*
 - (BOOL)textField:(UITextField *)textField shouldChangeCharactersInRange:(NSRange)range replacementString:(NSString *)string
 {
+    NSLog(@"sssssvvvvv");
+    
+    NSLog(@"sadfasdfs---%@",textField.text);
+    
     //模糊查询 -- 使用sql语言
-//    NSArray *array = [[TFDataTool sharedTFDataTool] select:string];
-//        self.arrays = (NSMutableArray *)array;
+    NSArray *array = [[TFDataTool sharedTFDataTool] select:string];
+        self.arrays = (NSMutableArray *)array;
     
+    NSLog(@"%@",string);
     
-//    //使用谓词
-    NSPredicate *predicate = [NSPredicate predicateWithFormat:@"self.name contains [cd] %@",string];
-    
-     [self.arrays filterUsingPredicate:predicate];
-    
+////    //使用谓词
+//    NSPredicate *predicate = [NSPredicate predicateWithFormat:@"self.name contains [cd] %@",string];
+//    
+////    BOOL match = [predicate evaluateWithObject:self.arrays[0]];
+//    
+//    NSLog(@"xxx%d",self.arrs.count);
+//    
+//     [self.arrs filterUsingPredicate:predicate];
+//    
+//    self.arrays = self.arrs;
+//    
     [self.tableView reloadData];
     
     return YES;
 }
+*/
+- (void)textfieldChange:(NSNotification *)nofi
+{
+    NSLog(@"%s",__func__);
+    
+    NSLog(@"%@",self.searchBar.text);
+    //模糊查询 -- 使用sql语言
+//    NSArray *array = [[TFDataTool sharedTFDataTool] select:self.searchBar.text];
+//    self.arrays = (NSMutableArray *)array;
+    
+    
+    ////    //使用谓词
+
+    if (self.searchBar.text.length != 0) {
+        //清空搜索数组
+        [self.arrs removeAllObjects];
+        NSPredicate *predicate = [NSPredicate predicateWithFormat:@"self.name contains [cd]%@",self.searchBar.text];
+    
+    NSLog(@"self.arrs%ld",self.arrs.count);
+    //
+//    NSArray *arr = [self.arrays filteredArrayUsingPredicate:predicate];
+    //
+        
+//        for (TFContact *contact in arr) {
+//            NSLog(@"i%@",contact.name);
+//        }
+        
+        
+        self.arrs = [[NSMutableArray alloc] initWithArray:[self.arrays filteredArrayUsingPredicate:predicate]];
+        int i = 0;
+        for (TFContact *contact in self.arrays) {
+            NSLog(@"%d,%@",i,contact.name);
+            i++;
+        }
+        
+        NSLog(@"sele.arrays%@",self.arrays);
+    //
+    }else{
+        self.arrs = self.arrays;
+    }
+    [self.tableView reloadData];
+}
+
+
 
 #pragma mark - 添加联系人按钮
 - (void)addContact:(UIButton *)btn
@@ -222,5 +312,14 @@
         }
     }
 }
+
+- (void)scrollViewWillBeginDragging:(UIScrollView *)scrollView
+{
+    [self.searchBar resignFirstResponder];
+}
+
+
+
+
 
 @end

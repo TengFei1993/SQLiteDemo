@@ -14,7 +14,7 @@
 + (instancetype)initWithString:(NSString *)placeStr
 {
     //创建textField
-    MBSearchBar *textField = [[MBSearchBar alloc] init];
+    MBSearchBar *textField = [[self alloc] init];
     //textField.frame = CGRectMake(0, 0, 100, 100);
     textField.placeholder = placeStr;
 //    UIImage *image = [UIImage imageWithStretchableName:@"searchbar_textfield_background"];
