@@ -140,10 +140,15 @@
 
 - (BOOL)textField:(UITextField *)textField shouldChangeCharactersInRange:(NSRange)range replacementString:(NSString *)string
 {
-    //模糊查询
-    NSArray *array = [[TFDataTool sharedTFDataTool] select:string];
+    //模糊查询 -- 使用sql语言
+//    NSArray *array = [[TFDataTool sharedTFDataTool] select:string];
+//        self.arrays = (NSMutableArray *)array;
     
-    self.arrays = array;
+    
+//    //使用谓词
+    NSPredicate *predicate = [NSPredicate predicateWithFormat:@"self.name contains [cd] %@",string];
+    
+     [self.arrays filterUsingPredicate:predicate];
     
     [self.tableView reloadData];
     
